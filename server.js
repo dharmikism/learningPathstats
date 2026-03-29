@@ -44,6 +44,7 @@ const HOST = "127.0.0.1";
 const FEATHERLESS_API_URL = "https://api.featherless.ai/v1/chat/completions";
 const FEATHERLESS_MODEL = process.env.FEATHERLESS_MODEL || "gpt-4.1-mini";
 const FEATHERLESS_API_KEY = (process.env.FEATHERLESS_API_KEY || "").trim();
+const FEATHERLESS_MODELS_URL = "https://api.featherless.ai/v1/models";
 
 const BRIGHTDATA_WEBHOOK_URL = (process.env.BRIGHTDATA_WEBHOOK_URL || "").trim();
 const BRIGHTDATA_BEARER_TOKEN = (process.env.BRIGHTDATA_BEARER_TOKEN || "").trim();
@@ -56,6 +57,14 @@ const MIME = {
   ".json": "application/json; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
 };
+
+function safeErrorMessage(err, fallback = "Unknown error") {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
+function normalizeDomain(domain) {
+  return String(domain || "software").toLowerCase().trim();
+}
 
 function sendJson(res, code, payload) {
   res.writeHead(code, {
@@ -91,6 +100,7 @@ function clamp(n, min, max) {
 }
 
 function fallbackIntel(domain) {
+  const normalized = normalizeDomain(domain);
   const map = {
     software: {
       marketVolatility: 42,
@@ -117,7 +127,7 @@ function fallbackIntel(domain) {
       insight: "Regulation news and risk controls driving stress.",
     },
   };
-  return map[domain] || map.software;
+  return map[normalized] || map.software;
 }
 
 function normalizeIntel(raw, domain) {
@@ -133,7 +143,7 @@ function normalizeIntel(raw, domain) {
 
 async function fetchBrightDataIntel(payload) {
   if (!BRIGHTDATA_WEBHOOK_URL) {
-    return fallbackIntel(payload.domain);
+    return fallbackIntel(payload?.domain);
   }
 
   const headers = {
@@ -148,17 +158,22 @@ async function fetchBrightDataIntel(payload) {
   let bodyPayload = payload;
 
   if (isBrightDataRequestApi) {
+    if (!BRIGHTDATA_ZONE) {
+      throw new Error("BRIGHTDATA_ZONE is required for Bright Data Request API");
+    }
+
+    const domain = normalizeDomain(payload?.domain);
     const queryMap = {
       software: "software engineer jobs india hiring trend",
       data: "data science jobs india hiring trend",
       product: "product manager jobs india hiring trend",
       fintech: "fintech jobs india hiring trend",
     };
-    const q = queryMap[payload.domain] || queryMap.software;
+    const q = queryMap[domain] || queryMap.software;
     const encoded = encodeURIComponent(q);
 
     bodyPayload = {
-      zone: BRIGHTDATA_ZONE || "",
+      zone: BRIGHTDATA_ZONE,
       url: `https://www.google.com/search?q=${encoded}`,
       format: "raw",
     };
@@ -189,7 +204,7 @@ async function fetchBrightDataIntel(payload) {
   }
 
   const data = await response.json();
-  return normalizeIntel(data, payload.domain);
+  return normalizeIntel(data, normalizeDomain(payload?.domain));
 }
 
 function fallbackUpgrades(weakest) {
@@ -232,6 +247,46 @@ function extractJsonArray(text) {
   }
 }
 
+async function fetchFeatherlessModelCandidates(key) {
+  const response = await fetch(FEATHERLESS_MODELS_URL, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${key}`,
+    },
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const payload = await response.json();
+  const items = Array.isArray(payload?.data) ? payload.data : [];
+  return items
+    .map((item) => String(item?.id || "").trim())
+    .filter(Boolean);
+}
+
+async function callFeatherlessChat({ key, model, prompt }) {
+  const response = await fetch(FEATHERLESS_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.5,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Featherless returned ${response.status}`);
+  }
+
+  return response.json();
+}
+
 async function fetchFeatherlessUpgrades(payload) {
   const runtimeKey = (payload.apiKey || "").trim();
   const key = runtimeKey || FEATHERLESS_API_KEY;
@@ -252,24 +307,39 @@ async function fetchFeatherlessUpgrades(payload) {
     "Return exactly 3 concise upgrade actions as a JSON array of strings.",
   ].join("\n");
 
-  const response = await fetch(FEATHERLESS_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: FEATHERLESS_MODEL,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.5,
-    }),
-  });
+  const modelCandidates = [FEATHERLESS_MODEL];
+  let data = null;
+  let lastError = null;
 
-  if (!response.ok) {
-    throw new Error(`Featherless returned ${response.status}`);
+  for (const model of modelCandidates) {
+    try {
+      data = await callFeatherlessChat({ key, model, prompt });
+      break;
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  const data = await response.json();
+  if (!data) {
+    const discoveredModels = await fetchFeatherlessModelCandidates(key);
+    for (const model of discoveredModels) {
+      if (modelCandidates.includes(model)) {
+        continue;
+      }
+
+      try {
+        data = await callFeatherlessChat({ key, model, prompt });
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+  }
+
+  if (!data) {
+    throw new Error(safeErrorMessage(lastError, "Featherless model call failed"));
+  }
+
   const content = data?.choices?.[0]?.message?.content || "";
   const parsed = extractJsonArray(content);
 
@@ -278,9 +348,9 @@ async function fetchFeatherlessUpgrades(payload) {
 
 function serveFile(reqPath, res) {
   const clean = reqPath === "/" ? "/index.html" : reqPath;
-  const fullPath = path.join(ROOT, clean);
+  const fullPath = path.resolve(ROOT, `.${clean}`);
 
-  if (!fullPath.startsWith(ROOT)) {
+  if (!fullPath.startsWith(path.resolve(ROOT))) {
     sendJson(res, 400, { error: "Invalid path" });
     return;
   }
@@ -319,10 +389,10 @@ const server = http.createServer(async (req, res) => {
         const intel = await fetchBrightDataIntel(payload);
         sendJson(res, 200, intel);
       } catch (err) {
-        const fallback = fallbackIntel(payload.domain);
+        const fallback = fallbackIntel(payload?.domain);
         sendJson(res, 200, {
           ...fallback,
-          insight: `${fallback.insight} (fallback: ${err.message})`,
+          insight: `${fallback.insight} (fallback: ${safeErrorMessage(err)})`,
         });
       }
       return;
@@ -334,7 +404,7 @@ const server = http.createServer(async (req, res) => {
         const upgrades = await fetchFeatherlessUpgrades(payload);
         sendJson(res, 200, { upgrades });
       } catch (err) {
-        sendJson(res, 200, { upgrades: fallbackUpgrades(payload.weakest), fallbackReason: err.message });
+        sendJson(res, 200, { upgrades: fallbackUpgrades(payload?.weakest), fallbackReason: safeErrorMessage(err) });
       }
       return;
     }
@@ -346,7 +416,7 @@ const server = http.createServer(async (req, res) => {
 
     sendJson(res, 405, { error: "Method not allowed" });
   } catch (err) {
-    sendJson(res, 500, { error: err.message || "Server error" });
+    sendJson(res, 500, { error: safeErrorMessage(err, "Server error") });
   }
 });
 

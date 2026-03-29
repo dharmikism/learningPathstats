@@ -1,5 +1,6 @@
 const stats = ["Power", "Speed", "Durability", "Precision", "Potential", "Focus"];
 const API_BASE = window.location.origin;
+const DEFAULT_ROADMAP = "[x] Arrays and Strings (3h)\n[x] Binary Search (2h)\n[ ] Dynamic Programming (5h)\n[ ] System Design Basics (4h)";
 
 const baseStats = {
   Power: 88,
@@ -15,7 +16,7 @@ const state = {
   weeks: 8,
   hours: 18,
   domain: "software",
-  roadmapText: "[x] Arrays and Strings (3h)\n[x] Binary Search (2h)\n[ ] Dynamic Programming (5h)\n[ ] System Design Basics (4h)",
+  roadmapText: DEFAULT_ROADMAP,
   roadmapStats: {
     totalTopics: 0,
     completedTopics: 0,
@@ -80,6 +81,16 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function resetRepairAndRefresh() {
+  state.repaired = false;
+  updateAll();
+}
+
 function scoreToGrade(score) {
   return gradeBands.find((b) => score >= b.min).grade;
 }
@@ -100,16 +111,16 @@ function analyzeRoadmap(text) {
     .filter(Boolean);
 
   const topics = lines.map((line) => {
-    const done = /\[x\]/i.test(line);
+    const done = /^\[(x|done)\]/i.test(line);
     const title = line
       .replace(/^[-*\d.\s]*/, "")
-      .replace(/^\[[ xX]\]\s*/, "")
+      .replace(/^\[(x|done| )\]\s*/i, "")
       .replace(/\(\s*\d+\s*h\s*\)/i, "")
       .trim();
     const hoursMatch = line.match(/(\d+)\s*h/i);
-    const hours = hoursMatch ? Number(hoursMatch[1]) : 2;
+    const hours = hoursMatch ? toNumber(hoursMatch[1], 2) : 2;
     return { done, title, hours };
-  });
+  }).filter((topic) => topic.title.length > 0);
 
   const totalTopics = topics.length;
   const completedTopics = topics.filter((t) => t.done).length;
@@ -384,9 +395,9 @@ async function fetchBrightDataIntel() {
 
     const intel = await response.json();
 
-    state.sliders.timePressure = Number(intel.timePressure);
-    state.sliders.burnoutRisk = Number(intel.burnoutRisk);
-    state.sliders.marketVolatility = Number(intel.marketVolatility);
+    state.sliders.timePressure = clamp(toNumber(intel.timePressure, state.sliders.timePressure), 0, 100);
+    state.sliders.burnoutRisk = clamp(toNumber(intel.burnoutRisk, state.sliders.burnoutRisk), 0, 100);
+    state.sliders.marketVolatility = clamp(toNumber(intel.marketVolatility, state.sliders.marketVolatility), 0, 100);
 
     el.timePressure.value = String(state.sliders.timePressure);
     el.burnoutRisk.value = String(state.sliders.burnoutRisk);
@@ -397,10 +408,9 @@ async function fetchBrightDataIntel() {
     updateSliderLabel("marketVolatility", state.sliders.marketVolatility);
 
     el.intelStatus.textContent = `Intel loaded: ${intel.insight || "Market signals mapped to stress profile."}`;
-    state.repaired = false;
-    updateAll();
+    resetRepairAndRefresh();
   } catch (err) {
-    el.intelStatus.textContent = `Bright Data unavailable (${err.message}). Using last slider values.`;
+    el.intelStatus.textContent = `Bright Data unavailable (${err.message}). Keeping your current slider values.`;
   } finally {
     el.fetchIntel.disabled = false;
   }
@@ -425,7 +435,7 @@ async function callFeatherlessFix() {
   const weakest = getWeaknessKey();
 
   el.fixPath.disabled = true;
-  el.fixStatus.textContent = "Featherless strategist is crafting upgrades...";
+  el.fixStatus.textContent = "Generating practical improvements for your roadmap...";
 
   try {
     const response = await fetch(`${API_BASE}/api/featherless/fix`, {
@@ -452,7 +462,11 @@ async function callFeatherlessFix() {
     }
 
     state.upgrades = parsed.slice(0, 3).map((x) => String(x));
-    el.fixStatus.textContent = "AI patch deployed. Path stats recovered.";
+    if (data?.fallbackReason) {
+      el.fixStatus.textContent = `Using backup suggestions (${data.fallbackReason}).`;
+    } else {
+      el.fixStatus.textContent = "AI suggestions applied. Path stats recovered.";
+    }
     state.repaired = true;
     updateAll();
   } catch (err) {
@@ -468,41 +482,35 @@ async function callFeatherlessFix() {
 function bindEvents() {
   el.planName.addEventListener("input", (e) => {
     state.planName = e.target.value;
-    state.repaired = false;
-    updateAll();
+    resetRepairAndRefresh();
   });
 
   el.weeks.addEventListener("input", (e) => {
-    state.weeks = Number(e.target.value) || 1;
-    state.repaired = false;
-    updateAll();
+    state.weeks = clamp(toNumber(e.target.value, 1), 1, 52);
+    resetRepairAndRefresh();
   });
 
   el.hours.addEventListener("input", (e) => {
-    state.hours = Number(e.target.value) || 1;
-    state.repaired = false;
-    updateAll();
+    state.hours = clamp(toNumber(e.target.value, 1), 1, 80);
+    resetRepairAndRefresh();
   });
 
   el.domain.addEventListener("change", (e) => {
     state.domain = e.target.value;
     fetchBrightDataIntel();
-    updateAll();
   });
 
   el.roadmapInput.addEventListener("input", (e) => {
     state.roadmapText = e.target.value;
-    state.repaired = false;
-    updateAll();
+    resetRepairAndRefresh();
   });
 
   ["timePressure", "burnoutRisk", "marketVolatility"].forEach((id) => {
     el[id].addEventListener("input", (e) => {
-      const value = Number(e.target.value);
+      const value = clamp(toNumber(e.target.value, state.sliders[id]), 0, 100);
       state.sliders[id] = value;
       updateSliderLabel(id, value);
-      state.repaired = false;
-      updateAll();
+      resetRepairAndRefresh();
     });
   });
 

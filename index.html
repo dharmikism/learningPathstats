@@ -16,7 +16,7 @@
   <header class="topbar">
     <div class="brand-wrap">
       <p class="kicker">Learning Path Stats Lab</p>
-      <h1>Judge Demo Console</h1>
+      <h1>Your Learning Path Copilot</h1>
     </div>
     <div class="api-wrap simple-note">
       <p>AI suggestions run automatically from server config.</p>
@@ -74,7 +74,7 @@
       </div>
 
       <div class="field-group">
-        <label for="roadmapInput">Roadmap Topics (one per line, use [x] for done)</label>
+        <label for="roadmapInput">Roadmap Topics (one per line, use [x] for completed items)</label>
         <textarea id="roadmapInput" rows="7" placeholder="[x] Arrays and Strings (3h)
 [x] Binary Search (2h)
 [ ] Dynamic Programming (5h)
@@ -84,7 +84,7 @@
       <div class="intel-box" id="intelBox">
         <div class="intel-head">
           <h4>BrightData Intel</h4>
-          <button id="fetchIntel" type="button">Fetch Live Stress</button>
+          <button id="fetchIntel" type="button">Get Live Stress</button>
         </div>
         <p id="intelStatus">Waiting for scrape trigger.</p>
       </div>
@@ -118,7 +118,7 @@
 
       <div class="tab-panel active" id="upgradesPanel">
         <button id="fixPath" class="fix-btn" type="button">FIX MY PATH</button>
-        <p id="fixStatus">No AI patch applied yet.</p>
+        <p id="fixStatus">Click Fix My Path for actionable improvements.</p>
         <ul id="upgradeList" class="upgrade-list"></ul>
       </div>
 
