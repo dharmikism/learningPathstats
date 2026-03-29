@@ -1,0 +1,9 @@
+{
+  "name": "learning-path-stats-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hackathon demo app with Bright Data and Featherless integration",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

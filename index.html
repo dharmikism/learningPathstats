@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learning Path Stats Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-shape bg-shape-one"></div>
+  <div class="bg-shape bg-shape-two"></div>
+
+  <header class="topbar">
+    <div class="brand-wrap">
+      <p class="kicker">Learning Path Stats Lab</p>
+      <h1>Judge Demo Console</h1>
+    </div>
+    <div class="api-wrap">
+      <label for="apiKey">Featherless API Key (optional override)</label>
+      <input id="apiKey" type="password" placeholder="Leave empty to use server env key" />
+    </div>
+  </header>
+
+  <main class="app-grid">
+    <section class="path-card panel">
+      <div class="path-top-row">
+        <div class="rank-badge" id="rankBadge">Rank A</div>
+        <div>
+          <h2 id="pathName">PATH: DSA</h2>
+          <p id="pathAbility" class="ability">Core Strength: Time Compression Sprint</p>
+        </div>
+        <div class="weakness-card" id="weaknessCard">
+          <p class="weakness-title">Primary Weakness</p>
+          <p id="weaknessText">Durability axis vulnerable under burnout spikes.</p>
+        </div>
+      </div>
+
+      <div class="hero-body">
+        <div class="radar-wrap">
+          <svg id="radar" viewBox="0 0 460 460" aria-label="Learning path radar chart"></svg>
+          <p class="radar-note" id="radarNote">Stress profile stable.</p>
+        </div>
+        <div class="grades-wrap" id="gradesGrid"></div>
+      </div>
+    </section>
+
+    <section class="left-panel panel">
+      <h3>Plan Inputs</h3>
+      <div class="field-group">
+        <label for="planName">Plan Name</label>
+        <input id="planName" type="text" value="DSA Prep" />
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="weeks">Weeks</label>
+          <input id="weeks" type="number" min="1" max="52" value="8" />
+        </div>
+        <div class="field-group">
+          <label for="hours">Hours/Week</label>
+          <input id="hours" type="number" min="1" max="80" value="18" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="domain">Domain</label>
+        <select id="domain">
+          <option value="software">Software Engineering</option>
+          <option value="data">Data Science</option>
+          <option value="product">Product Management</option>
+          <option value="fintech">Fintech</option>
+        </select>
+      </div>
+
+      <div class="intel-box" id="intelBox">
+        <div class="intel-head">
+          <h4>BrightData Intel</h4>
+          <button id="fetchIntel" type="button">Fetch Live Stress</button>
+        </div>
+        <p id="intelStatus">Waiting for scrape trigger.</p>
+      </div>
+
+      <h3>Stress Sliders</h3>
+      <div class="slider-group">
+        <label for="timePressure">Time Pressure <span id="timePressureVal">40</span></label>
+        <input id="timePressure" type="range" min="0" max="100" value="40" />
+      </div>
+      <div class="slider-group">
+        <label for="burnoutRisk">Burnout Risk <span id="burnoutRiskVal">35</span></label>
+        <input id="burnoutRisk" type="range" min="0" max="100" value="35" />
+      </div>
+      <div class="slider-group">
+        <label for="marketVolatility">Market Volatility <span id="marketVolatilityVal">30</span></label>
+        <input id="marketVolatility" type="range" min="0" max="100" value="30" />
+      </div>
+    </section>
+
+    <section class="right-panel panel">
+      <h3>Learning Path Evolution</h3>
+      <div class="evolution-grid" id="evolutionGrid"></div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="upgrades" type="button">AI Upgrades</button>
+        <button class="tab-btn" data-tab="timeline" type="button">Survival Timeline</button>
+      </div>
+
+      <div class="tab-panel active" id="upgradesPanel">
+        <button id="fixPath" class="fix-btn" type="button">FIX MY PATH</button>
+        <p id="fixStatus">No AI patch applied yet.</p>
+        <ul id="upgradeList" class="upgrade-list"></ul>
+      </div>
+
+      <div class="tab-panel" id="timelinePanel">
+        <ul class="timeline" id="timeline"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
