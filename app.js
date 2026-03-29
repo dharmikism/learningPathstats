@@ -15,6 +15,15 @@ const state = {
   weeks: 8,
   hours: 18,
   domain: "software",
+  roadmapText: "[x] Arrays and Strings (3h)\n[x] Binary Search (2h)\n[ ] Dynamic Programming (5h)\n[ ] System Design Basics (4h)",
+  roadmapStats: {
+    totalTopics: 0,
+    completedTopics: 0,
+    completionPct: 0,
+    estimatedHours: 0,
+    coverageCount: 0,
+    roadmapStrength: 0,
+  },
   sliders: {
     timePressure: 40,
     burnoutRisk: 35,
@@ -35,7 +44,6 @@ const gradeBands = [
 ];
 
 const el = {
-  apiKey: document.getElementById("apiKey"),
   rankBadge: document.getElementById("rankBadge"),
   pathName: document.getElementById("pathName"),
   pathAbility: document.getElementById("pathAbility"),
@@ -50,6 +58,8 @@ const el = {
   weeks: document.getElementById("weeks"),
   hours: document.getElementById("hours"),
   domain: document.getElementById("domain"),
+  roadmapInput: document.getElementById("roadmapInput"),
+  roadmapStatsGrid: document.getElementById("roadmapStatsGrid"),
   intelStatus: document.getElementById("intelStatus"),
   fetchIntel: document.getElementById("fetchIntel"),
   timePressure: document.getElementById("timePressure"),
@@ -83,20 +93,85 @@ function scoreToRank(avg) {
   return "E";
 }
 
+function analyzeRoadmap(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const topics = lines.map((line) => {
+    const done = /\[x\]/i.test(line);
+    const title = line
+      .replace(/^[-*\d.\s]*/, "")
+      .replace(/^\[[ xX]\]\s*/, "")
+      .replace(/\(\s*\d+\s*h\s*\)/i, "")
+      .trim();
+    const hoursMatch = line.match(/(\d+)\s*h/i);
+    const hours = hoursMatch ? Number(hoursMatch[1]) : 2;
+    return { done, title, hours };
+  });
+
+  const totalTopics = topics.length;
+  const completedTopics = topics.filter((t) => t.done).length;
+  const completionPct = totalTopics ? Math.round((completedTopics / totalTopics) * 100) : 0;
+  const estimatedHours = topics.reduce((sum, t) => sum + t.hours, 0);
+
+  const buckets = [
+    { name: "algorithms", pattern: /array|string|binary|graph|tree|dp|dynamic|greedy|recursion|algorithm/i },
+    { name: "system", pattern: /system\s*design|scalability|distributed|cache|queue|api\s*design/i },
+    { name: "backend", pattern: /node|backend|database|sql|nosql|express|server|auth/i },
+    { name: "frontend", pattern: /react|frontend|ui|css|html|state\s*management/i },
+    { name: "data", pattern: /python|ml|data|statistics|model|pandas|numpy/i },
+    { name: "fundamentals", pattern: /os|network|dbms|oop|javascript|typescript|cs\s*fundamental/i },
+  ];
+
+  const covered = new Set();
+  let hardTopicCount = 0;
+  topics.forEach((topic) => {
+    buckets.forEach((bucket) => {
+      if (bucket.pattern.test(topic.title)) {
+        covered.add(bucket.name);
+      }
+    });
+    if (/hard|advanced|expert|deep|system\s*design/i.test(topic.title)) {
+      hardTopicCount += 1;
+    }
+  });
+
+  const coverageCount = covered.size;
+  const roadmapStrength = clamp(
+    38 + completionPct * 0.34 + coverageCount * 6 + Math.min(estimatedHours, 80) * 0.24 - hardTopicCount * 1.5,
+    0,
+    100,
+  );
+
+  return {
+    totalTopics,
+    completedTopics,
+    completionPct,
+    estimatedHours,
+    coverageCount,
+    roadmapStrength,
+  };
+}
+
 function computeAfterStats() {
   const { timePressure, burnoutRisk, marketVolatility } = state.sliders;
   const { weeks, hours } = state;
+  const { completionPct, coverageCount, totalTopics, roadmapStrength } = state.roadmapStats;
 
   const scheduleStress = clamp(((hours / Math.max(weeks, 1)) * 5), 0, 30);
   const fatigue = burnoutRisk * 0.45 + timePressure * 0.2;
+  const roadmapBoost = clamp(completionPct * 0.08 + coverageCount * 1.8 + roadmapStrength * 0.05, 0, 14);
+  const overloadPenalty = clamp((totalTopics - 16) * 0.6, 0, 10);
 
   state.after = {
-    Power: clamp(baseStats.Power - timePressure * 0.28 - marketVolatility * 0.12, 35, 99),
-    Speed: clamp(baseStats.Speed - timePressure * 0.33 - scheduleStress * 0.4, 30, 99),
+    Power: clamp(baseStats.Power - timePressure * 0.28 - marketVolatility * 0.12 + roadmapBoost * 0.25, 35, 99),
+    Speed: clamp(baseStats.Speed - timePressure * 0.33 - scheduleStress * 0.4 - overloadPenalty * 0.4, 30, 99),
     Durability: clamp(baseStats.Durability - fatigue - marketVolatility * 0.18, 20, 99),
-    Precision: clamp(baseStats.Precision - marketVolatility * 0.3 - timePressure * 0.12, 30, 99),
-    Potential: clamp(baseStats.Potential - burnoutRisk * 0.2 - scheduleStress * 0.3, 30, 99),
-    Focus: clamp(baseStats.Focus - burnoutRisk * 0.32 - timePressure * 0.08, 25, 99),
+    Precision: clamp(baseStats.Precision - marketVolatility * 0.3 - timePressure * 0.12 + coverageCount * 1.2, 30, 99),
+    Potential: clamp(baseStats.Potential - burnoutRisk * 0.2 - scheduleStress * 0.3 + roadmapBoost * 0.5, 30, 99),
+    Focus: clamp(baseStats.Focus - burnoutRisk * 0.32 - timePressure * 0.08 + completionPct * 0.05 - overloadPenalty, 25, 99),
   };
 
   if (state.repaired) {
@@ -104,6 +179,22 @@ function computeAfterStats() {
       state.after[k] = clamp(state.after[k] + 14, 20, 99);
     });
   }
+}
+
+function renderRoadmapStats() {
+  const s = state.roadmapStats;
+  const cards = [
+    { label: "Topics", value: `${s.totalTopics}` },
+    { label: "Completed", value: `${s.completedTopics}` },
+    { label: "Completion", value: `${s.completionPct}%` },
+    { label: "Coverage", value: `${s.coverageCount} areas` },
+    { label: "Planned Hours", value: `${s.estimatedHours}h` },
+    { label: "Roadmap Strength", value: `${Math.round(s.roadmapStrength)}/100` },
+  ];
+
+  el.roadmapStatsGrid.innerHTML = cards
+    .map((c) => `<article class="roadmap-stat-card"><p class="roadmap-stat-label">${c.label}</p><p class="roadmap-stat-value">${c.value}</p></article>`)
+    .join("");
 }
 
 function getWeaknessKey() {
@@ -254,9 +345,11 @@ function renderUpgrades() {
 }
 
 function updateAll() {
+  state.roadmapStats = analyzeRoadmap(state.roadmapText);
   computeAfterStats();
   renderMeta();
   renderRadar();
+  renderRoadmapStats();
   renderGrades();
   renderEvolution();
   renderTimeline();
@@ -328,7 +421,7 @@ function localUpgradeSuggestions() {
 }
 
 async function callFeatherlessFix() {
-  const apiKey = el.apiKey.value.trim();
+  const apiKey = "";
   const weakest = getWeaknessKey();
 
   el.fixPath.disabled = true;
@@ -397,6 +490,12 @@ function bindEvents() {
     updateAll();
   });
 
+  el.roadmapInput.addEventListener("input", (e) => {
+    state.roadmapText = e.target.value;
+    state.repaired = false;
+    updateAll();
+  });
+
   ["timePressure", "burnoutRisk", "marketVolatility"].forEach((id) => {
     el[id].addEventListener("input", (e) => {
       const value = Number(e.target.value);
@@ -427,6 +526,7 @@ function bindEvents() {
 }
 
 function init() {
+  el.roadmapInput.value = state.roadmapText;
   updateSliderLabel("timePressure", state.sliders.timePressure);
   updateSliderLabel("burnoutRisk", state.sliders.burnoutRisk);
   updateSliderLabel("marketVolatility", state.sliders.marketVolatility);

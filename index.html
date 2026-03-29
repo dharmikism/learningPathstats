@@ -18,9 +18,8 @@
       <p class="kicker">Learning Path Stats Lab</p>
       <h1>Judge Demo Console</h1>
     </div>
-    <div class="api-wrap">
-      <label for="apiKey">Featherless API Key (optional override)</label>
-      <input id="apiKey" type="password" placeholder="Leave empty to use server env key" />
+    <div class="api-wrap simple-note">
+      <p>AI suggestions run automatically from server config.</p>
     </div>
   </header>
 
@@ -74,6 +73,14 @@
         </select>
       </div>
 
+      <div class="field-group">
+        <label for="roadmapInput">Roadmap Topics (one per line, use [x] for done)</label>
+        <textarea id="roadmapInput" rows="7" placeholder="[x] Arrays and Strings (3h)
+[x] Binary Search (2h)
+[ ] Dynamic Programming (5h)
+[ ] System Design Basics (4h)"></textarea>
+      </div>
+
       <div class="intel-box" id="intelBox">
         <div class="intel-head">
           <h4>BrightData Intel</h4>
@@ -98,6 +105,9 @@
     </section>
 
     <section class="right-panel panel">
+      <h3>Roadmap Statistics</h3>
+      <div class="roadmap-stats-grid" id="roadmapStatsGrid"></div>
+
       <h3>Learning Path Evolution</h3>
       <div class="evolution-grid" id="evolutionGrid"></div>
 

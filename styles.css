@@ -1,14 +1,12 @@
 :root {
-  --bg-ink: #07101a;
-  --bg-deep: #0d1f2f;
-  --panel: rgba(5, 14, 26, 0.78);
-  --line: rgba(150, 202, 255, 0.22);
-  --text: #e9f4ff;
-  --muted: #a8c4de;
-  --accent: #30d0ff;
-  --accent-2: #ffd166;
-  --danger: #ff4f5a;
-  --good: #2ad88f;
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --line: #e4e7ec;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --danger: #dc2626;
+  --good: #16a34a;
 }
 
 * {
@@ -20,36 +18,14 @@ body {
   min-height: 100vh;
   font-family: "Space Grotesk", sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(circle at 15% 20%, rgba(34, 146, 255, 0.24), transparent 32%),
-    radial-gradient(circle at 78% 12%, rgba(255, 155, 72, 0.2), transparent 28%),
-    linear-gradient(140deg, var(--bg-ink) 0%, var(--bg-deep) 50%, #050d17 100%);
+  background: var(--bg);
   padding: 24px;
   position: relative;
   overflow-x: hidden;
 }
 
 .bg-shape {
-  position: fixed;
-  pointer-events: none;
-  filter: blur(40px);
-  z-index: 0;
-}
-
-.bg-shape-one {
-  width: 340px;
-  height: 340px;
-  top: -120px;
-  right: -110px;
-  background: rgba(53, 190, 255, 0.3);
-}
-
-.bg-shape-two {
-  width: 360px;
-  height: 360px;
-  bottom: -140px;
-  left: -110px;
-  background: rgba(255, 196, 92, 0.22);
+  display: none;
 }
 
 .topbar,
@@ -69,7 +45,7 @@ body {
 .kicker {
   margin: 0;
   color: var(--accent);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   font-size: 0.85rem;
   text-transform: uppercase;
 }
@@ -80,15 +56,9 @@ h3 {
   margin: 0;
 }
 
-h1,
-h2,
-.rank-badge {
-  font-family: "Bebas Neue", sans-serif;
-  letter-spacing: 0.03em;
-}
-
 h1 {
-  font-size: clamp(1.8rem, 2.2vw, 2.8rem);
+  font-size: clamp(1.5rem, 2vw, 2.2rem);
+  font-weight: 700;
 }
 
 .api-wrap {
@@ -96,6 +66,16 @@ h1 {
   flex-direction: column;
   gap: 6px;
   min-width: min(420px, 48vw);
+}
+
+.simple-note p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
 }
 
 label {
@@ -112,17 +92,30 @@ button {
 input,
 select {
   width: 100%;
-  background: rgba(7, 18, 32, 0.8);
+  background: #fff;
   border: 1px solid var(--line);
   color: var(--text);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px 12px;
 }
 
+textarea {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 130px;
+  font: inherit;
+}
+
 input:focus,
+textarea:focus,
 select:focus,
 button:focus {
-  outline: 2px solid rgba(48, 208, 255, 0.55);
+  outline: 2px solid rgba(37, 99, 235, 0.35);
   outline-offset: 2px;
 }
 
@@ -137,10 +130,9 @@ button:focus {
 
 .panel {
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 12px;
   background: var(--panel);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 12px 30px rgba(4, 11, 22, 0.35);
+  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.06);
   padding: 18px;
 }
 
@@ -164,16 +156,18 @@ button:focus {
 }
 
 .rank-badge {
-  background: linear-gradient(135deg, #ffb347 0%, #ffcc33 100%);
-  color: #1b1608;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
   border-radius: 999px;
-  font-size: 1.45rem;
+  font-size: 1rem;
+  font-weight: 700;
   padding: 6px 14px;
 }
 
 #pathName {
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.95;
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  line-height: 1.1;
 }
 
 .ability {
@@ -182,26 +176,26 @@ button:focus {
 }
 
 .weakness-card {
-  border: 1px solid rgba(255, 79, 90, 0.35);
+  border: 1px solid #fecaca;
   border-radius: 12px;
   padding: 10px;
-  background: rgba(39, 8, 11, 0.45);
+  background: #fff5f5;
   max-width: 280px;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
 .weakness-card.flash {
   border-color: var(--danger);
-  box-shadow: 0 0 0 2px rgba(255, 79, 90, 0.3), 0 0 26px rgba(255, 79, 90, 0.35);
-  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);
+  transform: none;
 }
 
 .weakness-title {
   margin: 0;
   font-size: 0.8rem;
-  color: #ffb5bb;
+  color: #b91c1c;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.04em;
 }
 
 #weaknessText {
@@ -218,12 +212,12 @@ button:focus {
 
 .radar-wrap {
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: rgba(7, 19, 34, 0.6);
+  background: #fcfcfd;
 }
 
 #radar {
@@ -244,14 +238,14 @@ button:focus {
 
 .grade-card {
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgba(6, 15, 27, 0.62);
+  border-radius: 10px;
+  background: #ffffff;
   padding: 10px;
 }
 
 .grade-card.bad {
-  border-color: rgba(255, 79, 90, 0.62);
-  box-shadow: inset 0 0 0 1px rgba(255, 79, 90, 0.24);
+  border-color: #fca5a5;
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.1);
 }
 
 .grade-stat {
@@ -260,8 +254,8 @@ button:focus {
 }
 
 .grade-val {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 1.9rem;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .field-group,
@@ -280,7 +274,7 @@ button:focus {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px;
-  background: rgba(6, 16, 29, 0.62);
+  background: #fcfcfd;
 }
 
 .intel-head {
@@ -295,20 +289,21 @@ h4 {
 }
 
 button {
-  border: 1px solid transparent;
-  border-radius: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   cursor: pointer;
-  transition: transform 140ms ease, filter 140ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 button:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.08);
+  transform: none;
+  filter: none;
 }
 
 #fetchIntel {
-  background: linear-gradient(125deg, #2fc8ff 0%, #0ca7e8 100%);
-  color: #062132;
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
   padding: 8px 11px;
   font-weight: 700;
 }
@@ -325,11 +320,38 @@ button:hover {
   gap: 8px;
 }
 
+.roadmap-stats-grid {
+  margin-top: 10px;
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.roadmap-stat-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+}
+
+.roadmap-stat-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.roadmap-stat-value {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
 .evo-card {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px;
-  background: rgba(6, 15, 27, 0.58);
+  background: #ffffff;
 }
 
 .evo-stat {
@@ -339,8 +361,8 @@ button:hover {
 
 .evo-flow {
   margin-top: 2px;
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 1.55rem;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .tabs {
@@ -351,14 +373,16 @@ button:hover {
 
 .tab-btn {
   flex: 1;
-  background: rgba(8, 19, 34, 0.85);
+  background: #ffffff;
   color: var(--text);
   border-color: var(--line);
   padding: 8px 10px;
 }
 
 .tab-btn.active {
-  background: rgba(48, 208, 255, 0.2);
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
 }
 
 .tab-panel {
@@ -372,11 +396,12 @@ button:hover {
 
 .fix-btn {
   width: 100%;
-  background: linear-gradient(145deg, #ffcb57 0%, #ffad48 100%);
-  color: #2a1f08;
-  font-family: "Bebas Neue", sans-serif;
-  letter-spacing: 0.04em;
-  font-size: 1.5rem;
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  letter-spacing: 0.01em;
+  font-size: 1rem;
+  font-weight: 700;
   padding: 10px;
 }
 
@@ -402,7 +427,7 @@ button:hover {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 9px;
-  background: rgba(7, 17, 29, 0.58);
+  background: #ffffff;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -436,6 +461,10 @@ button:hover {
   .api-wrap {
     min-width: 0;
     width: 100%;
+  }
+
+  .roadmap-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .topbar {

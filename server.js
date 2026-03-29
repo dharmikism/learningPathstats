@@ -3,9 +3,43 @@ const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
 
+const ROOT = __dirname;
+
+function loadDotEnv() {
+  const envPath = path.join(ROOT, ".env");
+  if (!fs.existsSync(envPath)) {
+    return;
+  }
+
+  const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadDotEnv();
+
 const PORT = Number(process.env.PORT || 8787);
 const HOST = "127.0.0.1";
-const ROOT = __dirname;
 
 const FEATHERLESS_API_URL = "https://api.featherless.ai/v1/chat/completions";
 const FEATHERLESS_MODEL = process.env.FEATHERLESS_MODEL || "gpt-4.1-mini";
