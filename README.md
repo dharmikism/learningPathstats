@@ -1,102 +1,175 @@
-# Learning Path Stats Lab
+Great question. Here is exactly how your app calculates everything, step by step.
 
-Complete hackathon demo app with:
-- Hero stats card and radar visualization
-- Live stress degradation and evolution view
-- AI recovery suggestions via Featherless
-- Bright Data driven stress intel via webhook
+**End-to-End Flow**
+1. You type plan details and roadmap topics in index.html.
+2. Frontend logic in app.js parses roadmap text and computes roadmap metrics.
+3. Those metrics + stress sliders are converted into 6 core scores.
+4. Scores are converted into letter grades and rank.
+5. UI updates radar, grade cards, evolution grid, weakness warning, and timeline.
+6. Backend in server.js fetches Bright Data stress intel and Featherless suggestions.
 
-## 1) Project Setup
+---
 
-1. Open terminal in this project folder.
-2. Copy .env.example to .env.
-3. Fill keys and webhook URL in .env.
-4. Start the app:
-   - npm start
-5. Open http://127.0.0.1:8787 in Chrome.
+**1) Roadmap Parsing and Metrics**
+In app.js, roadmap input is parsed line-by-line.
 
-## 2) Exactly What To Do In Featherless.ai
+Expected topic format examples:
+1. `[x] Arrays (3h)` -> completed topic
+2. `[ ] Graphs (5h)` -> pending topic
+3. `[done] SQL (2h)` -> also treated as completed
 
-1. Log in to Featherless.
-2. Create a new API key.
-3. Copy the key.
-4. Put it in one of these places:
-   - Recommended: .env as FEATHERLESS_API_KEY
-   - Optional: paste in app top bar field Featherless API Key (optional override)
-5. Keep FEATHERLESS_MODEL in .env as gpt-4.1-mini unless you want another model.
-6. Test inside app:
-   - Add stress with sliders.
-   - Click FIX MY PATH.
-   - Confirm 3 upgrade suggestions appear.
+For each line it extracts:
+1. done status
+2. cleaned title
+3. estimated hours (`Nh`, default = 2 if not written)
 
-What happens internally:
-- Frontend calls POST /api/featherless/fix on local server.
-- Server calls Featherless chat completions API.
-- If API fails, server returns fallback suggestions so demo still runs.
+Then it calculates:
+1. totalTopics
+2. completedTopics
+3. completionPct
+4. estimatedHours (sum)
+5. coverageCount (how many skill buckets are represented)
+6. roadmapStrength
 
-## 3) Exactly What To Do In Bright Data
+Coverage buckets include:
+1. algorithms
+2. system design
+3. backend
+4. frontend
+5. data
+6. fundamentals
 
-Goal:
-- Bright Data should return stress metrics your app can map to sliders.
+Roadmap strength formula:
+$$
+\text{roadmapStrength} = \text{clamp}\left(38 + 0.34\cdot \text{completionPct} + 6\cdot \text{coverageCount} + 0.24\cdot \min(\text{estimatedHours},80) - 1.5\cdot \text{hardTopicCount}, 0, 100\right)
+$$
 
-1. In Bright Data, create a webhook or API flow that returns JSON.
-2. Make sure response includes these fields (root or inside intel object):
-   - marketVolatility (0-100)
-   - timePressure (0-100)
-   - burnoutRisk (0-100)
-   - insight (string summary)
-3. Copy your Bright Data webhook URL.
-4. Put webhook in .env:
-   - BRIGHTDATA_WEBHOOK_URL=your_url
-   - If you want to use Bright Data Request API directly, use:
-     BRIGHTDATA_WEBHOOK_URL=https://api.brightdata.com/request
-     BRIGHTDATA_ZONE=your_zone_name
-5. If your endpoint needs auth, set:
-   - BRIGHTDATA_BEARER_TOKEN=your_token
-6. Restart server after changing .env.
-7. In app, choose Domain and click Fetch Live Stress.
-8. Confirm sliders update from returned values and intel message appears.
+---
 
-What happens internally:
-- Frontend calls POST /api/brightdata/intel.
-- Server forwards domain, planName, weeks, hours to your Bright Data webhook.
-- If using Bright Data Request API URL directly, server sends zone/url/format payload and derives stress from returned HTML.
-- Server normalizes returned fields into slider values.
-- If Bright Data is unavailable, server sends fallback stress values.
+**2) Stress + Roadmap -> Core Stat Scores**
+Base stats:
+1. Power 88
+2. Speed 84
+3. Durability 80
+4. Precision 82
+5. Potential 86
+6. Focus 78
 
-## 4) Expected Bright Data Response Examples
+Inputs used:
+1. timePressure
+2. burnoutRisk
+3. marketVolatility
+4. weeks
+5. hours
+6. roadmap metrics
 
-Example A (root fields):
-{
-  "marketVolatility": 61,
-  "timePressure": 52,
-  "burnoutRisk": 47,
-  "insight": "Job listings show tighter deadlines this week."
-}
+Derived helper values:
+1. `scheduleStress = clamp((hours / weeks) * 5, 0, 30)`
+2. `fatigue = burnoutRisk * 0.45 + timePressure * 0.2`
+3. `roadmapBoost = clamp(completionPct*0.08 + coverageCount*1.8 + roadmapStrength*0.05, 0, 14)`
+4. `overloadPenalty = clamp((totalTopics - 16) * 0.6, 0, 10)`
 
-Example B (nested fields):
-{
-  "intel": {
-    "marketVolatility": 61,
-    "timePressure": 52,
-    "burnoutRisk": 47,
-    "insight": "Job listings show tighter deadlines this week."
-  }
-}
+Then each score is calculated (and clamped to safe ranges):
+1. Power: affected by time + volatility, improved by roadmapBoost
+2. Speed: drops with time pressure and schedule stress, plus overload
+3. Durability: mainly reduced by fatigue and volatility
+4. Precision: reduced by volatility/time, improved by coverage breadth
+5. Potential: reduced by burnout/schedule, improved by roadmapBoost
+6. Focus: reduced by burnout/time/overload, improved by completion
 
-## 5) Demo Script (Judges)
+If “Fix My Path” is applied, repaired mode adds +14 to each stat (with clamp limits).
 
-1. Open app and show hero card.
-2. Change Plan Name and show PATH label updates.
-3. Select Domain and click Fetch Live Stress.
-4. Move sliders and show grades degrade plus radar collapse.
-5. Show weakness highlight in red.
-6. Click FIX MY PATH and show AI upgrades.
-7. Show rank and evolution recovery.
+---
 
-## 6) Files
+**3) Score -> Grade and Rank**
+Grade mapping:
+1. A: >= 90
+2. B: >= 80
+3. C: >= 70
+4. D: >= 60
+5. E: < 60
 
-- Frontend: index.html, styles.css, app.js
-- Server: server.js
-- Config template: .env.example
-- Run script: package.json
+Rank mapping (based on average of 6 stats):
+1. S: >= 90
+2. A: >= 83
+3. B: >= 74
+4. C: >= 66
+5. D: >= 56
+6. E: < 56
+
+Weakness:
+1. Lowest stat is selected as primary weakness.
+2. If weakness grade is D/E, warning style is highlighted.
+
+---
+
+**4) Timeline Logic**
+Timeline checkpoints are fixed labels:
+1. Week 2
+2. Week 4
+3. Week 6
+4. Week 8
+
+Pass threshold per checkpoint:
+1. 82
+2. 77
+3. 72
+4. 67
+
+If average stat >= threshold -> PASS, else FAIL.
+
+---
+
+**5) Bright Data Calculation Path**
+When you click “Get Live Stress”, frontend calls:
+1. `POST /api/brightdata/intel` in server.js
+
+Two modes:
+
+1. Request API mode (`https://api.brightdata.com/request`)
+1. Server builds Google query by domain.
+2. Sends `{ zone, url, format: "raw" }`.
+3. Parses returned HTML and counts keyword signals.
+4. Converts counts to:
+- marketVolatility
+- timePressure
+- burnoutRisk
+
+2. Webhook JSON mode
+1. Accepts JSON with either root fields or nested `intel`.
+2. Normalizes multiple possible field names to the 3 stress values.
+
+If Bright Data fails:
+1. Server returns domain-based fallback stress profile and insight note.
+
+---
+
+**6) Featherless Suggestion Path**
+When you click “Fix My Path”, frontend calls:
+1. `POST /api/featherless/fix`
+
+Backend logic in server.js:
+1. Builds prompt from plan name, weakest stat, and current grades.
+2. Tries configured model first (`FEATHERLESS_MODEL`).
+3. If that fails, fetches `/v1/models` and retries with discovered models.
+4. Parses model output as JSON array of 3 suggestions.
+5. If everything fails, returns fallback suggestions + `fallbackReason`.
+
+Frontend in app.js:
+1. Shows AI success message if real response succeeded.
+2. Shows backup message when fallback is used.
+
+---
+
+**7) Why Your UI Feels “Live”**
+Every input event re-runs:
+1. roadmap analysis
+2. score recomputation
+3. rank/grade mapping
+4. full UI render
+
+So you get immediate feedback for every typed topic or slider movement.
+
+---
+
+If you want, I can next create a one-page “formula cheat sheet” section in README.md so you can explain this quickly during judging without opening source code.
